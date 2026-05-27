@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn(); }
+    function isUser(uid) { return isSignedIn() && request.auth.uid == uid; }
+    
+    function isAdmin() { 
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); 
+    }
+
+    function isProviderOwner(providerId) {
+      return isSignedIn() && 
+             (providerId == request.auth.uid || 
+              (exists(/databases/$(database)/documents/providers/$(providerId)) &&
+               get(/databases/$(database)/documents/providers/$(providerId)).data.ownerId == request.auth.uid));
+    }
+
+    function isClientOwner(clientId) {
+      return isSignedIn() && 
+             (clientId == request.auth.uid || 
+              (exists(/databases/$(database)/documents/clients/$(clientId)) &&
+               get(/databases/$(database)/documents/clients/$(clientId)).data.uid == request.auth.uid));
+    }
+
+    // --- Providers ---
+    function isValidProvider(data) {
+      return data.keys().hasAll(['name', 'planType', 'status', 'ownerId']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.planType in ['basic', 'premium', 'business'] &&
+             data.status in ['active', 'blocked'] &&
+             (data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /providers/{providerId} {
+      allow read: if isSignedIn() && (providerId == request.auth.uid || resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerified() && isValidProvider(incoming()) && (isAdmin() || request.auth.uid == providerId || incoming().ownerId == request.auth.uid);
+      allow update: if isVerified() && isValidProvider(incoming()) && (isAdmin() || isProviderOwner(providerId));
+      allow delete: if isAdmin();
+    }
+
+    // --- Clients ---
+    function isValidClient(data) {
+      return data.keys().hasAll(['providerId', 'name', 'status']) &&
+             data.providerId is string && data.providerId.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.status in ['active', 'blocked', 'overdue'];
+    }
+
+    match /clients/{clientId} {
+      allow read: if isSignedIn() && (
+        clientId == request.auth.uid ||
+        resource.data.uid == request.auth.uid || 
+        resource.data.providerId == request.auth.uid || 
+        isAdmin()
+      );
+      allow create: if isVerified() && isValidClient(incoming()) && (incoming().providerId == request.auth.uid || isAdmin() || incoming().uid == request.auth.uid || clientId == request.auth.uid);
+      allow update: if isVerified() && isValidClient(incoming()) && (
+        isAdmin() || 
+        isProviderOwner(existing().providerId) ||
+        (
+          (existing().uid == request.auth.uid || clientId == request.auth.uid) &&
+          incoming().providerId == existing().providerId &&
+          incoming().status == existing().status &&
+          (!incoming().keys().contains('planId') || incoming().planId == existing().planId)
+        )
+      );
+      allow delete: if isAdmin() || (isSignedIn() && existing().providerId == request.auth.uid);
+    }
+
+    // --- Billing ---
+    function isValidBilling(data) {
+      return data.keys().hasAll(['clientId', 'providerId', 'amount', 'dueDate', 'status']) &&
+             data.clientId is string && data.clientId.size() <= 128 &&
+             data.providerId is string && data.providerId.size() <= 128 &&
+             data.amount is number &&
+             data.status in ['pending', 'paid', 'overdue'];
+    }
+
+    match /billing/{billingId} {
+      allow read: if isSignedIn() && (
+        isProviderOwner(resource.data.providerId) || 
+        isAdmin() || 
+        (resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isVerified() && isProviderOwner(incoming().providerId) && isValidBilling(incoming());
+      allow update: if isVerified() && isValidBilling(incoming()) && (
+        isAdmin() || isProviderOwner(existing().providerId)
+      );
+      allow delete: if isAdmin();
+    }
+
+    // --- Tickets ---
+    function isValidTicket(data) {
+      return data.keys().hasAll(['clientId', 'providerId', 'subject', 'status']) &&
+             data.clientId is string && data.clientId.size() <= 128 &&
+             data.providerId is string && data.providerId.size() <= 128 &&
+             data.subject is string && data.subject.size() <= 200 &&
+             data.status in ['open', 'closed'];
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if isSignedIn() && (isProviderOwner(resource.data.providerId) || isAdmin() || resource.data.uid == request.auth.uid || exists(/databases/$(database)/documents/clients/$(request.auth.uid)));
+      allow create: if isVerified() && isValidTicket(incoming());
+      allow update: if isVerified() && isValidTicket(incoming()) && (isAdmin() || isProviderOwner(existing().providerId) || existing().uid == request.auth.uid || ticketId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // --- Messages ---
+    function isValidMessage(data) {
+      return data.keys().hasAll(['ticketId', 'senderId', 'text', 'createdAt']) &&
+             data.senderId == request.auth.uid &&
+             data.ticketId is string && data.ticketId.size() <= 128 &&
+             data.text is string && data.text.size() <= 1000 &&
+             data.createdAt == request.time;
+    }
+
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && isValidMessage(incoming());
+    }
+
+    // --- Admins ---
+    match /admins/{adminId} {
+      allow read: if isAdmin() || (isSignedIn() && adminId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && adminId == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+  }
+}
