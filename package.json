@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx api/server.ts",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -26,6 +26,7 @@
     "react-router-dom": "^7.15.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/node": "^22.19.19",
     "typescript": "^5.8.2",
