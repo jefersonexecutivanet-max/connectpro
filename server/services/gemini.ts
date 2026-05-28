@@ -26,7 +26,12 @@ export async function generateMarketingContent(prompt: string, providerName: str
       }
     });
 
-    return JSON.parse(result.text || "{}");
+    const rawText = result.text || "{}";
+    try {
+      return JSON.parse(rawText);
+    } catch (_) {
+      return { raw: rawText };
+    }
   } catch (error: any) {
     console.error("AI Error:", error);
     throw new Error(error.message);

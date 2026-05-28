@@ -27,7 +27,7 @@ function isPrivateIp(ip: string): boolean {
     s === "127.0.0.1" ||
     s.startsWith("192.168.") ||
     s.startsWith("10.") ||
-    /^172\\.(1[6-9]|2[0-9]|3[0-1])\\./.test(s)
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(s)
   );
 }
 

@@ -24,7 +24,7 @@ import {
   Cloud,
   RefreshCw
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { useNetwork } from '../lib/useNetwork';
 import { getFriendlyErrorMessage } from '../lib/errorMapping';

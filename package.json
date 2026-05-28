@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx api/server.ts",
+    "dev": "vite",
+    "dev:server": "tsx api/server.ts",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -18,17 +19,22 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.13.0",
-    "framer-motion": "^12.39.0",
+    "framer-motion": "^12.40.0",
     "lucide-react": "^0.546.0",
     "node-routeros": "^1.6.8",
+    "tailwind-merge": "^1.14.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "react-router-dom": "^7.15.1"
+    "react-router-dom": "^7.15.1",
+    "recharts": "^2.10.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/node": "^22.19.19",
+    "@types/react": "^19.2.15",
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "typescript": "^5.8.2",
     "vite": "^6.4.2"
   }

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, 
   LayoutDashboard, 
@@ -23,7 +23,7 @@ import { ProviderDashboard } from './components/ProviderDashboard';
 import { ClientApp } from './components/ClientApp';
 import { MasterPortal } from './components/MasterPortal';
 import brandLogo from './assets/images/connectpro_logo_1779276610303.png';
-import { auth, db, getDocResilient, isOfflineError } from './lib/firebase';
+import { auth } from './lib/firebase';
 import { cn } from './lib/utils';
 import { useNetwork } from './lib/useNetwork';
 import { 
